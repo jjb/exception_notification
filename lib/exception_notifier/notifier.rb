@@ -50,7 +50,7 @@ class ExceptionNotifier
       end
     end
 
-    def exception_notification(env, exception)
+    def exception_notification(env, exception, custom_message=nil, custom_hash=nil)
       @env        = env
       @exception  = exception
       @options    = (env['exception_notifier.options'] || {}).reverse_merge(self.class.default_options)
@@ -59,6 +59,8 @@ class ExceptionNotifier
       @backtrace  = clean_backtrace(exception)
       @sections   = @options[:sections]
       data        = env['exception_notifier.exception_data'] || {}
+
+      process_custom(custom_message, custom_hash)
 
       data.each do |name, value|
         instance_variable_set("@#{name}", value)
@@ -70,13 +72,15 @@ class ExceptionNotifier
       end
     end
 
-    def background_exception_notification(exception)
+    def background_exception_notification(exception, custom_message=nil, custom_hash=nil)
       if @notifier = Rails.application.config.middleware.detect{ |x| x.klass == ExceptionNotifier }
         @options = (@notifier.args.first || {}).reverse_merge(self.class.default_options)
         @exception = exception
         @backtrace = exception.backtrace || []
         @sections  = %w{backtrace}
         subject  = compose_subject(exception)
+
+        process_custom(custom_message, custom_hash)
 
         mail(:to => @options[:exception_recipients], :from => @options[:sender_address], :subject => subject) do |format|
           format.text { render "#{mailer_name}/background_exception_notification" }
@@ -85,6 +89,14 @@ class ExceptionNotifier
     end
 
     private
+
+    def process_custom(m, h)
+      @custom_message = m
+      @custom_hash    = h
+      if @custom_hash || @custom_message
+        @sections = ['custom'] + @sections
+      end
+    end
 
     def compose_subject(exception, kontroller=nil)
       subject = "#{@options[:email_prefix]}"
