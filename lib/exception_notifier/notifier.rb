@@ -51,6 +51,7 @@ class ExceptionNotifier
     end
 
     def exception_notification(env, exception, custom_message=nil, custom_hash=nil)
+      raise exception if Rails.env.development?
       @env        = env
       @exception  = exception
       @options    = (env['exception_notifier.options'] || {}).reverse_merge(self.class.default_options)
@@ -73,6 +74,7 @@ class ExceptionNotifier
     end
 
     def background_exception_notification(exception, custom_message=nil, custom_hash=nil)
+      raise exception if Rails.env.development?
       if @notifier = Rails.application.config.middleware.detect{ |x| x.klass == ExceptionNotifier }
         @options = (@notifier.args.first || {}).reverse_merge(self.class.default_options)
         @exception = exception
