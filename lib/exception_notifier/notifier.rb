@@ -15,6 +15,7 @@ class ExceptionNotifier
       attr_writer :default_email_prefix
       attr_writer :default_sections
       attr_writer :default_verbose_subject
+      attr_writer :default_normalize_subject
 
       def default_sender_address
         @default_sender_address || %("Exception Notifier" <exception.notifier@default.com>)
@@ -36,12 +37,17 @@ class ExceptionNotifier
         @default_verbose_subject.nil? || @default_verbose_subject
       end
 
+      def default_normalize_subject
+        @default_normalize_prefix || false
+      end
+
       def default_options
         { :sender_address => default_sender_address,
           :exception_recipients => default_exception_recipients,
           :email_prefix => default_email_prefix,
           :sections => default_sections,
-          :verbose_subject => default_verbose_subject }
+          :verbose_subject => default_verbose_subject,
+          :normalize_subject => default_normalize_subject }
       end
     end
 
@@ -91,6 +97,7 @@ class ExceptionNotifier
       subject << "#{kontroller.controller_name}##{kontroller.action_name}" if kontroller
       subject << " (#{exception.class})"
       subject << " #{exception.message.inspect}" if @options[:verbose_subject]
+      subject = subject.tr('0-9', 'N') if @options[:normalize_subject]
       subject.length > 120 ? subject[0...120] + "..." : subject
     end
 
